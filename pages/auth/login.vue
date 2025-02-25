@@ -44,7 +44,7 @@
 
         <div v-if="errors.general" class="error-message">{{ errors.general }}</div>
       </form>
-      <p class="signup">Don’t have an account? <NuxtLink to="/register">Sign up</NuxtLink></p>
+      <p class="signup">Don’t have an account? <NuxtLink to="/auth/register">Sign up</NuxtLink></p>
     </div>
   </div>
 </template>
@@ -86,7 +86,13 @@ const login = async () => {
     const response = await loginUser(form.value.email, form.value.password);
 
     if (response.success) {
+      localStorage.clear();
       localStorage.setItem('auth_token', response.token);
+      localStorage.setItem('user_first_name', response.user.first_name);
+      localStorage.setItem('user_last_name', response.user.last_name);
+      localStorage.setItem('user_email', response.user.email);
+      localStorage.setItem('user_phone', response.user.phone);
+
       router.push('/main');
       alert("Authenticated successfully.");
     }

@@ -1,6 +1,7 @@
 import { useFetch } from '#app';
 
 export default function useAuth() {
+
     const loginUser = async (email, password) => {
         const { data, error } = await useFetch('http://localhost/api/auth/login', {
             method: 'POST',
@@ -20,7 +21,8 @@ export default function useAuth() {
             return {
                 success: true,
                 message: data.value.message,
-                token: data.value.token
+                token: data.value.token,
+                user: data.value.user
             };
         }
         return {
@@ -29,5 +31,48 @@ export default function useAuth() {
             message: 'Unexpected error occurred'
         };
     };
-    return { loginUser };
+
+
+    const registerUser = async (first_name, last_name, email, password, password_confirmation, phone) => {
+        const { data, error } = await useFetch('http://localhost/api/auth/register', {
+            method: 'POST',
+            body: {
+                first_name,
+                last_name,
+                email,
+                password,
+                password_confirmation,
+                phone
+            },
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (error.value) {
+            const errorData = error.value.data;
+
+            return {
+                success: false,
+                errors: errorData?.errors || {},
+                message: errorData?.message || 'Registration failed'
+            };
+        }
+
+        if (data.value?.success) {
+            return {
+                success: true,
+                message: data.value.message,
+            };
+        }
+
+        return {
+            success: false,
+            errors: {},
+            message: 'Unexpected error occurred'
+        };
+    };
+
+    return {
+        loginUser,
+        registerUser
+    };
 }
