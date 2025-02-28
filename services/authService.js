@@ -102,9 +102,46 @@ export default function useAuth() {
         };
     };
 
+    const resetPassword = async (email, password, password_confirmation, token) => {
+        const { data, error } = await useFetch('http://localhost/api/auth/password/reset', {
+            method: 'POST',
+            body: {
+                email,
+                password,
+                password_confirmation,
+                token
+            },
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (error.value) {
+            const errorData = error.value.data;
+
+            return {
+                success: false,
+                errors: errorData?.errors || {},
+                message: errorData?.message || 'Unexpected error occurred'
+            };
+        }
+
+        if (data.value?.success) {
+            return {
+                success: true,
+                message: data.value.message,
+            };
+        }
+
+        return {
+            success: false,
+            errors: {},
+            message: data.value?.message || 'Unexpected error occurred'
+        };
+    };
+
     return {
         loginUser,
         registerUser,
-        sendPasswordResetLink
+        sendPasswordResetLink,
+        resetPassword
     };
 }
