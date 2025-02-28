@@ -71,8 +71,40 @@ export default function useAuth() {
         };
     };
 
+    const sendPasswordResetLink = async (email) => {
+        const { data, error } = await useFetch('http://localhost/api/auth/password/email', {
+            method: 'POST',
+            body: { email },
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (error.value) {
+            const errorData = error.value.data;
+
+            return {
+                success: false,
+                errors: errorData?.errors || {},
+                message: errorData?.message || 'Unexpected error occurred'
+            };
+        }
+
+        if (data.value?.success) {
+            return {
+                success: true,
+                message: data.value.message,
+            };
+        }
+
+        return {
+            success: false,
+            errors: {},
+            message: data.value?.message || 'Unexpected error occurred'
+        };
+    };
+
     return {
         loginUser,
-        registerUser
+        registerUser,
+        sendPasswordResetLink
     };
 }

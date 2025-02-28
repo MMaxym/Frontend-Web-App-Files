@@ -21,7 +21,7 @@
 
         <label for="password">
           Password
-          <NuxtLink class="forgot">Forgot Password?</NuxtLink>
+          <NuxtLink class="forgot" to="/auth/email">Forgot Password?</NuxtLink>
         </label>
         <div class="password-wrapper">
           <input v-model="form.password" :type="showPassword ? 'text' : 'password'" id="password" placeholder="Enter your password" />
