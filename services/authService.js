@@ -46,7 +46,6 @@ export default function useAuth() {
             },
             headers: { 'Content-Type': 'application/json' }
         });
-
         if (error.value) {
             const errorData = error.value.data;
 
@@ -56,14 +55,12 @@ export default function useAuth() {
                 message: errorData?.message || 'Registration failed'
             };
         }
-
         if (data.value?.success) {
             return {
                 success: true,
                 message: data.value.message,
             };
         }
-
         return {
             success: false,
             errors: {},
@@ -77,7 +74,6 @@ export default function useAuth() {
             body: { email },
             headers: { 'Content-Type': 'application/json' }
         });
-
         if (error.value) {
             const errorData = error.value.data;
 
@@ -87,14 +83,12 @@ export default function useAuth() {
                 message: errorData?.message || 'Unexpected error occurred'
             };
         }
-
         if (data.value?.success) {
             return {
                 success: true,
                 message: data.value.message,
             };
         }
-
         return {
             success: false,
             errors: {},
@@ -113,7 +107,6 @@ export default function useAuth() {
             },
             headers: { 'Content-Type': 'application/json' }
         });
-
         if (error.value) {
             const errorData = error.value.data;
 
@@ -123,14 +116,12 @@ export default function useAuth() {
                 message: errorData?.message || 'Unexpected error occurred'
             };
         }
-
         if (data.value?.success) {
             return {
                 success: true,
                 message: data.value.message,
             };
         }
-
         return {
             success: false,
             errors: {},

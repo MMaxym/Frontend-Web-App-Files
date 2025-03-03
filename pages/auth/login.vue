@@ -88,6 +88,7 @@ const login = async () => {
     if (response.success) {
       localStorage.clear();
       localStorage.setItem('auth_token', response.token);
+      localStorage.setItem('user_id', response.user.id);
       localStorage.setItem('user_first_name', response.user.first_name);
       localStorage.setItem('user_last_name', response.user.last_name);
       localStorage.setItem('user_email', response.user.email);

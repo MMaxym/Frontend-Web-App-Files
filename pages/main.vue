@@ -50,8 +50,7 @@
           </button>
           <div class="total-count">
             <span>Total Count Files</span>
-<!--            <strong>{{ countFiles }}</strong>-->
-            <strong>0</strong>
+            <strong>{{ countFiles }}</strong>
           </div>
         </div>
 
@@ -61,32 +60,28 @@
               <i class="far fa-eye stat-icon1"></i>
               <div class="card-content">
                 <span class="stat-title">Total Views</span>
-<!--                <span class="stat-value">{{ $totalViews }}</span>-->
-                <span class="stat-value">0</span>
+                <span class="stat-value">{{ totalViews }}</span>
               </div>
             </div>
             <div class="stat-box">
               <i class="fas fa-file-alt stat-icon2"></i>
               <div class="card-content">
                 <span class="stat-title">Count of existing files</span>
-<!--                <span class="stat-value">{{ $existingFilesCount }}</span>-->
-                <span class="stat-value">0</span>
+                <span class="stat-value">{{ existingFilesCount }}</span>
               </div>
             </div>
             <div class="stat-box">
               <i class="fas fa-file-excel stat-icon3"></i>
               <div class="card-content">
                 <span class="stat-title">Count of deleted files</span>
-<!--                <span class="stat-value">{{ $deletedFilesCount }}</span>-->
-                <span class="stat-value">0</span>
+                <span class="stat-value">{{ deletedFilesCount }}</span>
               </div>
             </div>
             <div class="stat-box">
               <i class="fas fa-link stat-icon4"></i>
               <div class="card-content">
                 <span class="stat-title">Total of disposable links</span>
-<!--                <span class="stat-value">{{ $totalDisposableLinks }} ({{ $usedDisposableLinks }} used)</span>-->
-                <span class="stat-value">0 (0 used)</span>
+                <span class="stat-value">{{ totalDisposableLinks }} ({{ usedDisposableLinks }} used)</span>
               </div>
             </div>
           </div>
@@ -132,10 +127,96 @@
 
 <script setup>
 import { useRouter } from 'vue-router';
+import { ref, onMounted } from 'vue';
+import useFileService from '@/services/fileService.js';
+import useFileLinkService from '@/services/fileLinkService.js';
+
 
 const router = useRouter();
 
+
 const files = ref([]);
+const countFiles = ref(0);
+const totalViews = ref(0);
+const existingFilesCount = ref(0);
+const deletedFilesCount = ref(0);
+const totalDisposableLinks = ref(0);
+const usedDisposableLinks = ref(0);
+
+const {
+  getUserFiles,
+  getUserFilesTotalCount,
+  getUserFilesTotalViews,
+  getUserFilesExisting,
+  getUserFilesDeleted
+} = useFileService();
+
+const {
+  getUserFileLinksDisposable,
+  getUserFileLinksUsedDisposable
+} = useFileLinkService();
+
+
+
+
+onMounted(async () => {
+
+  const response = await getUserFiles();
+  if (response.success) {
+    files.value = response.files;
+    sessionStorage.setItem('userFiles', JSON.stringify(response.files));
+  }
+  else {
+    const storedFiles = sessionStorage.getItem('userFiles');
+    if (storedFiles) {
+      files.value = JSON.parse(storedFiles);
+    }
+  }
+
+  const countFilesResponse = await getUserFilesTotalCount();
+  if (countFilesResponse.success) {
+    countFiles.value = countFilesResponse.files_count;
+  } else {
+    console.error('Failed to fetch files count:', countFilesResponse.message);
+  }
+
+  const countViewsResponse = await getUserFilesTotalViews();
+  if (countViewsResponse.success) {
+    totalViews.value = countViewsResponse.total_views;
+  } else {
+    console.error('Failed to fetch views count:', countViewsResponse.message);
+  }
+
+  const countExistingFilesResponse = await getUserFilesExisting();
+  if (countExistingFilesResponse.success) {
+    existingFilesCount.value = countExistingFilesResponse.existing_files_count;
+  } else {
+    console.error('Failed to fetch existing files count:', countExistingFilesResponse.message);
+  }
+
+  const countDeletedFilesResponse = await getUserFilesDeleted();
+  if (countDeletedFilesResponse.success) {
+    deletedFilesCount.value = countDeletedFilesResponse.deleted_files_count;
+  } else {
+    console.error('Failed to fetch deleted files count:', countDeletedFilesResponse.message);
+  }
+
+  const countDisposableFileLinksResponse = await getUserFileLinksDisposable();
+  if (countDisposableFileLinksResponse.success) {
+    totalDisposableLinks.value = countDisposableFileLinksResponse.disposable_links_count;
+  } else {
+    console.error('Failed to fetch disposable file links count:', countDisposableFileLinksResponse.message);
+  }
+
+  const countUsedDisposableFileLinksResponse = await getUserFileLinksUsedDisposable();
+  if (countUsedDisposableFileLinksResponse.success) {
+    usedDisposableLinks.value = countUsedDisposableFileLinksResponse.used_disposable_links_count;
+  } else {
+    console.error('Failed to fetch used disposable file links count:', countUsedDisposableFileLinksResponse.message);
+  }
+
+});
+
 
 
 const addFile = () => {
