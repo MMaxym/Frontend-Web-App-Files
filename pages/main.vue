@@ -30,7 +30,7 @@
           <button id="user-icon" class="user-icon">
             <i class="fas fa-user-circle"></i>
           </button>
-          <form class="logout-form">
+          <form class="logout-form" @submit.prevent="handleLogout">
             <button type="submit" class="logout-btn" id="logout-btn">
               <i class="fas fa-sign-out-alt logout"></i>
             </button>
@@ -165,8 +165,15 @@
 </template>
 
 <script setup>
+
+definePageMeta({
+  middleware: ['auth']
+});
+
 import { useRouter } from 'vue-router';
 import { ref, onMounted } from 'vue';
+import { useCookie } from '#app';
+import useAuthService from '@/services/authService.js';
 import useFileService from '@/services/fileService.js';
 import useFileLinkService from '@/services/fileLinkService.js';
 
@@ -191,6 +198,9 @@ const tooltipStyle = ref({
 
 const selectedFileInfo = ref({});
 
+const {
+  logoutUser
+} = useAuthService();
 
 const {
   getUserFiles,
@@ -208,6 +218,24 @@ const {
 
 
 
+
+const handleLogout = async () => {
+  const isConfirmed = window.confirm('Are you sure you want to log out?');
+
+  if (isConfirmed) {
+    const response = await logoutUser();
+
+    if (response.success) {
+      useCookie('auth_token').value = null;
+
+      router.push('/auth/login');
+      alert(response.message);
+    }
+    else {
+      console.error(response.message);
+    }
+  }
+};
 
 
 const openFileModal = (file) => {

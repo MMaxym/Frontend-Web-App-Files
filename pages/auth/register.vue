@@ -174,7 +174,7 @@ const register = async () => {
 
     if (response.success) {
       router.push('/auth/login');
-      alert("Registered successfully.");
+      alert(response.message);
     }
     else {
       errors.value = { email: '', password: '', password_confirmation: '', first_name: '', last_name: '', phone: '', general: '' };

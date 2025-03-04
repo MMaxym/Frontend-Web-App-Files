@@ -129,10 +129,50 @@ export default function useAuth() {
         };
     };
 
+    const logoutUser = async () => {
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            return {
+                success: false,
+                message: 'No auth token found!'
+            };
+        }
+
+        const { data, error } = await useFetch('http://localhost/api/auth/logout', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (error.value) {
+            return {
+                success: false,
+                errors: error.value.data?.errors || {},
+                message: error.value.data?.message || 'Failed to log out'
+            };
+        }
+
+        if (data.value?.success) {
+            localStorage.clear();
+            sessionStorage.clear();
+            return {
+                success: true,
+                message: 'Successfully logged out'
+            };
+        }
+
+        return {
+            success: false,
+            message: 'Unexpected error occurred'
+        };
+    };
+
     return {
         loginUser,
         registerUser,
         sendPasswordResetLink,
-        resetPassword
+        resetPassword,
+        logoutUser
     };
 }

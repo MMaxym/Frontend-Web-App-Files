@@ -52,6 +52,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useCookie } from '#app';
 import useAuth from '@/services/authService.js';
 
 const router = useRouter();
@@ -93,9 +94,10 @@ const login = async () => {
       localStorage.setItem('user_last_name', response.user.last_name);
       localStorage.setItem('user_email', response.user.email);
       localStorage.setItem('user_phone', response.user.phone);
+      useCookie('auth_token', { httpOnly: true, secure: true }).value = response.token;
 
       router.push('/main');
-      alert("Authenticated successfully.");
+      alert(response.message);
     }
     else {
       errors.value = { email: '', password: '', general: '' };
