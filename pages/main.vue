@@ -96,7 +96,15 @@
               </tr>
               </thead>
               <tbody>
-              <tr v-for="file in files" :key="file.id" class="file-row">
+              <tr
+                  v-for="file in files"
+                  :key="file.id"
+                  :class="{'selected': selectedFile === file.id}"
+                  @click="highlightRow(file.id)"
+                  @mouseenter="showTooltip($event, 'Double-click to see file details')"
+                  @mouseleave="hideTooltip"
+                  @dblclick="openFileModal(file)"
+              >
                 <td class="file-info">
                   <i class="far fa-file-alt file-icon"></i>
                   <div class="row-content">
@@ -112,11 +120,42 @@
               </tr>
               </tbody>
             </table>
+            <div id="tooltip" class="custom-tooltip" :style="tooltipStyle">{{ tooltipText }}</div>
+          </div>
+
+          <div id="fileModal" class="modal">
+            <div class="m-content-link">
+              <div class="modal-header-link">
+                <h2>File Information</h2>
+                <span class="modalClose" @click="closeModal">
+                  <i class="fas fa-times"></i>
+                </span>
+              </div>
+              <div class="modal-description-link">Detailed information about the selected file</div>
+              <div class="modal-body-link-file">
+                <div class="link-section-name">
+                  <i class="far fa-file-alt file-icon"></i>
+                  <span id="fileName">{{ selectedFileInfo.file_name }}</span>
+                </div>
+                <div class="link-section">
+                  <label for="fileDescription">Comment:</label>
+                  <span id="fileDescription">{{ selectedFileInfo.comment || 'No Comment' }}</span>
+                </div>
+                <div class="link-section">
+                  <label for="fileExpirationDate">Expiration Date:</label>
+                  <span id="fileExpirationDate">
+                    {{ selectedFileInfo.expiration_date === '-' ? 'No date expiration' : selectedFileInfo.expiration_date }}
+                  </span>
+                </div>
+                <div class="link-section">
+                  <label for="fileViews">Views:</label>
+                  <span id="fileViews">{{ selectedFileInfo.views_count || 0 }}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-
 
 
 
@@ -143,6 +182,16 @@ const deletedFilesCount = ref(0);
 const totalDisposableLinks = ref(0);
 const usedDisposableLinks = ref(0);
 
+const selectedFile = ref(null)
+const tooltipText = ref('')
+const tooltipStyle = ref({
+  top: '0px',
+  left: '0px',
+})
+
+const selectedFileInfo = ref({});
+
+
 const {
   getUserFiles,
   getUserFilesTotalCount,
@@ -159,7 +208,100 @@ const {
 
 
 
+
+
+const openFileModal = (file) => {
+  selectedFileInfo.value = {
+    file_name: file.file_name,
+    comment: file.comment,
+    expiration_date: file.expiration_date,
+    views_count: file.views_count,
+  };
+
+  const modal = document.getElementById('fileModal');
+
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+};
+
+const closeModal = () => {
+  const modal = document.getElementById('fileModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+};
+
+const showTooltip = (event, text) => {
+  tooltipText.value = text;
+  const tooltip = document.getElementById("tooltip");
+  if (tooltip) {
+    tooltip.style.visibility = 'visible';
+    tooltip.style.opacity = 1;
+
+    tooltipStyle.value = {
+      top: `${event.clientY + 15}px`,
+      left: `${event.clientX + 15}px`,
+    };
+  }
+
+  setTimeout(() => {
+    hideTooltip();
+  }, 1000);
+};
+
+const hideTooltip = () => {
+  const tooltip = document.getElementById("tooltip");
+  if (tooltip) {
+    tooltip.style.opacity = 0;
+  }
+};
+
+const highlightRow = (fileId) => {
+  selectedFile.value = selectedFile.value === fileId ? null : fileId
+}
+
+const handleClickOutside = (event) => {
+  if (!event.target.closest('table')) {
+    selectedFile.value = null
+  }
+}
+
+
+
+
+
+
+
+const addFile = () => {
+  alert("Open modal logic here");
+};
+
+const copyFileName = () => {
+  alert("Copy file name logic here");
+};
+
+const deleteFile = () => {
+  alert("Delete file logic here");
+};
+
+const generateDisposableLink = () => {
+  alert("Generate disposable link");
+};
+
+const generateMultipleLink = () => {
+  alert("Generate multiple link");
+};
+
+
+
+
+
+
+
 onMounted(async () => {
+
+  document.addEventListener('click', handleClickOutside)
 
   const response = await getUserFiles();
   if (response.success) {
@@ -218,26 +360,6 @@ onMounted(async () => {
 });
 
 
-
-const addFile = () => {
-  alert("Open modal logic here");
-};
-
-const copyFileName = () => {
-  alert("Copy file name logic here");
-};
-
-const deleteFile = () => {
-  alert("Delete file logic here");
-};
-
-const generateDisposableLink = () => {
-  alert("Generate disposable link");
-};
-
-const generateMultipleLink = () => {
-  alert("Generate multiple link");
-};
 
 
 

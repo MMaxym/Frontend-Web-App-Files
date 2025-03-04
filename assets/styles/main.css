@@ -755,7 +755,6 @@ tr.selected {
     justify-content: space-between;
     align-items: center;
     border-bottom: none !important;
-    padding-bottom: 5px !important;
 }
 
 .modal-header-link h2 {
@@ -1045,13 +1044,14 @@ tr.selected {
 
 .link-section label{
     color: var(--text-color);
-    margin-top: 10px;
+    margin-top: 15px;
     font-size: 14px;
 }
 
 .link-section span{
     color: var(--grey);
     font-size: 14px;
+    margin-left: 5px;
 }
 
 .custom-tooltip {
