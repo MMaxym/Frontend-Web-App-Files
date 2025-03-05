@@ -123,6 +123,7 @@ html, body {
 
 .logout{
     font-size: 20px;
+    margin-top: 5px;
 }
 
 .main-content {
@@ -451,7 +452,8 @@ tr.selected {
     justify-content: space-between;
     align-items: center;
     border-bottom: none !important;
-    padding-bottom: 5px !important;
+    padding-bottom: 0px !important;
+    padding-top: 10px !important;
 }
 
 .modal-header h2 {
@@ -482,7 +484,8 @@ tr.selected {
 .modal-body label{
     color: var(--text-color);
     font-size: 14px;
-    margin-top: 10px;
+    margin-top: 20px;
+    margin-bottom: 5px;
 }
 
 #firstNameLabel{
@@ -507,7 +510,7 @@ tr.selected {
     background: var(--blue1);
     color: var(--text-color);
     border-radius: var(--br-3xs);
-    margin-top: 20px;
+    margin-top: 25px;
     cursor: pointer;
     font-weight: bold;
     transition: background-color 0.3s, transform 0.2s;
@@ -518,7 +521,7 @@ tr.selected {
 }
 
 .form-edit{
-    margin-bottom: 0;
+    margin-top: 10px;
 }
 
 .error-message {

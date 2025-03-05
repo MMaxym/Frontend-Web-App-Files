@@ -38,6 +38,62 @@
         </div>
       </div>
 
+      <div id="dropdown" class="dropdown-content" ref="dropdownRef">
+        <div class="account-information">
+          <i class="fas fa-address-card"></i>
+          Personal Information
+        </div>
+        <div class="user-info">
+          <p class="user-name">{{ user.first_name }} {{ user.last_name }}</p>
+          <p class="user-email">{{ user.email }}</p>
+          <p class="user-phone">{{ user.phone }}</p>
+        </div>
+        <button class="btn-edit" id="editButton"  @click="openEditModal">
+          <i class="fas fa-pencil-alt"></i>
+          Edit
+        </button>
+      </div>
+
+
+      <div id="editModal" class="modal">
+        <div class="m-content">
+          <div class="modal-header">
+            <h2>Edit Personal Information</h2>
+            <span class="modalClose" id="closeEditModal" @click="closeEditModal">
+          <i class="fas fa-times"></i>
+        </span>
+          </div>
+          <div class="modal-description">You can edit your personal information and save it</div>
+          <div class="modal-body">
+            <form @submit="editUser" class="form-edit">
+              <label for="firstName">First Name</label>
+              <input type="text" id="firstName" name="first_name" v-model="user.first_name">
+              <div v-if="errors.first_name" class="error-message">* {{ errors.first_name }}</div>
+
+              <label for="lastName">Last Name</label>
+              <input type="text" id="lastName" name="last_name" v-model="user.last_name">
+              <div v-if="errors.last_name" class="error-message">* {{ errors.last_name }}</div>
+
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" v-model="user.email">
+              <div v-if="errors.email" class="error-message">* {{ errors.email }}</div>
+
+              <label for="phone">Phone</label>
+              <input type="tel" id="phone" name="phone" v-model="user.phone">
+              <div v-if="errors.phone" class="error-message">* {{ errors.phone }}</div>
+
+              <button type="submit" class="save-btn">SAVE CHANGES</button>
+
+              <div v-if="errors.general" class="error-message">{{ errors.general }}</div>
+
+            </form>
+          </div>
+        </div>
+      </div>
+
+
+
+
 
 
       <div class="main-content">
@@ -127,7 +183,7 @@
             <div class="m-content-link">
               <div class="modal-header-link">
                 <h2>File Information</h2>
-                <span class="modalClose" @click="closeModal">
+                <span class="modalClose" @click="closeFileModal">
                   <i class="fas fa-times"></i>
                 </span>
               </div>
@@ -176,11 +232,9 @@ import { useCookie } from '#app';
 import useAuthService from '@/services/authService.js';
 import useFileService from '@/services/fileService.js';
 import useFileLinkService from '@/services/fileLinkService.js';
-
+import useUserService from '@/services/userService';
 
 const router = useRouter();
-
-
 const files = ref([]);
 const countFiles = ref(0);
 const totalViews = ref(0);
@@ -198,9 +252,17 @@ const tooltipStyle = ref({
 
 const selectedFileInfo = ref({});
 
+let dropdown = null;
+let userIcon = null;
+
+
 const {
   logoutUser
 } = useAuthService();
+
+const {
+  updateUser
+} = useUserService();
 
 const {
   getUserFiles,
@@ -216,8 +278,114 @@ const {
 } = useFileLinkService();
 
 
+const user = ref({
+  first_name: localStorage.getItem('user_first_name'),
+  last_name: localStorage.getItem('user_last_name'),
+  email: localStorage.getItem('user_email'),
+  phone: localStorage.getItem('user_phone')
+});
+
+const form = ref({
+  first_name: '',
+  last_name: '',
+  email: '',
+  phone: '',
+});
+
+const errors = ref({
+  first_name: '',
+  last_name: '',
+  email: '',
+  phone: '',
+  general: '',
+});
 
 
+const showDropdown = () => {
+  if (dropdown) dropdown.style.display = "block";
+};
+
+const toggleDropdown = (event) => {
+  event.stopPropagation();
+  if (dropdown) {
+    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+  }
+};
+
+const hideDropdown = () => {
+  if (dropdown) dropdown.style.display = "none";
+};
+
+onUnmounted(() => {
+  if (userIcon && dropdown) {
+    userIcon.removeEventListener("mouseenter", showDropdown);
+    userIcon.removeEventListener("click", toggleDropdown);
+    dropdown.removeEventListener("mouseleave", hideDropdown);
+    document.removeEventListener("click", handleClickOutside);
+  }
+});
+
+const openEditModal = () => {
+  const modal = document.getElementById('editModal');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+};
+
+const closeEditModal = () => {
+  const modal = document.getElementById('editModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+  errors.value = { first_name: '', last_name: '', email: '', phone: '', general: '' };
+};
+
+
+
+
+const editUser = async (event) => {
+  event.preventDefault();
+
+  errors.value = { first_name: '', last_name: '', email: '', phone: '', general: '' };
+
+  if (!user.value.first_name) errors.value.first_name = 'First name is required.';
+  if (!user.value.last_name) errors.value.last_name = 'Last name is required.';
+  if (!user.value.email) errors.value.email = 'Email is required.';
+  if (!user.value.phone) errors.value.phone = 'Phone is required.';
+
+  if (Object.values(errors.value).some((err) => err)) {
+    return;
+  }
+
+  try {
+    const response = await updateUser(user.value);
+
+    if (response.success) {
+      localStorage.setItem('user_first_name', response.user.first_name);
+      localStorage.setItem('user_last_name', response.user.last_name);
+      localStorage.setItem('user_email', response.user.email);
+      localStorage.setItem('user_phone', response.user.phone);
+
+      alert(response.message);
+      closeEditModal();
+    } else {
+      errors.value = { first_name: '', last_name: '', email: '', phone: '', general: '' };
+      if (response.errors) {
+        for (const [field, message] of Object.entries(response.errors)) {
+          if (errors.value.hasOwnProperty(field)) {
+            errors.value[field] = message[0];
+          } else {
+            errors.value.general = message[0];
+          }
+        }
+      } else {
+        errors.value.general = response.message || 'Update failed';
+      }
+    }
+  } catch (error) {
+    errors.value.general = error.message || 'An unexpected error occurred.';
+  }
+};
 
 const handleLogout = async () => {
   const isConfirmed = window.confirm('Are you sure you want to log out?');
@@ -237,7 +405,6 @@ const handleLogout = async () => {
   }
 };
 
-
 const openFileModal = (file) => {
   selectedFileInfo.value = {
     file_name: file.file_name,
@@ -253,7 +420,7 @@ const openFileModal = (file) => {
   }
 };
 
-const closeModal = () => {
+const closeFileModal = () => {
   const modal = document.getElementById('fileModal');
   if (modal) {
     modal.style.display = 'none';
@@ -293,6 +460,10 @@ const handleClickOutside = (event) => {
   if (!event.target.closest('table')) {
     selectedFile.value = null
   }
+
+  if (!userIcon.contains(event.target) && !dropdown.contains(event.target)) {
+    hideDropdown();
+  }
 }
 
 
@@ -330,6 +501,17 @@ const generateMultipleLink = () => {
 onMounted(async () => {
 
   document.addEventListener('click', handleClickOutside)
+
+  userIcon = document.getElementById("user-icon");
+  dropdown = document.getElementById("dropdown");
+
+  if (userIcon && dropdown) {
+    userIcon.addEventListener("mouseenter", showDropdown);
+    userIcon.addEventListener("click", toggleDropdown);
+    dropdown.addEventListener("mouseleave", hideDropdown);
+    document.addEventListener("click", handleClickOutside);
+  }
+
 
   const response = await getUserFiles();
   if (response.success) {
