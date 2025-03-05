@@ -156,7 +156,7 @@
                   v-for="file in files"
                   :key="file.id"
                   :class="{'selected': selectedFile === file.id}"
-                  @click="highlightRow(file.id)"
+                  @click="highlightRow(file.id, file.file_name)"
                   @mouseenter="showTooltip($event, 'Double-click to see file details')"
                   @mouseleave="hideTooltip"
                   @dblclick="openFileModal(file)"
@@ -227,7 +227,7 @@ definePageMeta({
 });
 
 import { useRouter } from 'vue-router';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import { useCookie } from '#app';
 import useAuthService from '@/services/authService.js';
 import useFileService from '@/services/fileService.js';
@@ -243,12 +243,13 @@ const deletedFilesCount = ref(0);
 const totalDisposableLinks = ref(0);
 const usedDisposableLinks = ref(0);
 
-const selectedFile = ref(null)
-const tooltipText = ref('')
+const selectedFile = ref(null);
+const selectedFileName = ref("");
+const tooltipText = ref('');
 const tooltipStyle = ref({
   top: '0px',
   left: '0px',
-})
+});
 
 const selectedFileInfo = ref({});
 
@@ -339,9 +340,6 @@ const closeEditModal = () => {
   }
   errors.value = { first_name: '', last_name: '', email: '', phone: '', general: '' };
 };
-
-
-
 
 const editUser = async (event) => {
   event.preventDefault();
@@ -452,13 +450,21 @@ const hideTooltip = () => {
   }
 };
 
-const highlightRow = (fileId) => {
-  selectedFile.value = selectedFile.value === fileId ? null : fileId
+const highlightRow = (fileId, fileName) => {
+  if (selectedFile.value === fileId) {
+    selectedFile.value = null;
+    selectedFileName.value = null;
+  }
+  else {
+    selectedFile.value = fileId;
+    selectedFileName.value = fileName;
+  }
 }
 
 const handleClickOutside = (event) => {
   if (!event.target.closest('table')) {
     selectedFile.value = null
+    selectedFileName.value = null;
   }
 
   if (!userIcon.contains(event.target) && !dropdown.contains(event.target)) {
@@ -468,6 +474,23 @@ const handleClickOutside = (event) => {
 
 
 
+const copyFileName = () => {
+  if (!selectedFileName.value) {
+    alert("Select a file to copy the name!");
+    return;
+  }
+
+  navigator.clipboard.writeText(selectedFileName.value)
+      .then(() => {
+        alert("File name copied to clipboard!");
+        selectedFileName.value = null;
+      })
+      .catch(error => {
+        console.error("Failed to copy text: ", error);
+        alert("Failed to copy file name.");
+      });
+};
+
 
 
 
@@ -476,9 +499,6 @@ const addFile = () => {
   alert("Open modal logic here");
 };
 
-const copyFileName = () => {
-  alert("Copy file name logic here");
-};
 
 const deleteFile = () => {
   alert("Delete file logic here");
@@ -499,6 +519,8 @@ const generateMultipleLink = () => {
 
 
 onMounted(async () => {
+
+  await nextTick();
 
   document.addEventListener('click', handleClickOutside)
 
@@ -568,6 +590,8 @@ onMounted(async () => {
   }
 
 });
+
+
 
 
 
