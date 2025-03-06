@@ -22,7 +22,7 @@
           <button class="btn-else" @click="copyFileName">
             <i class="fas fa-copy"></i> Copy file name
           </button>
-          <button class="btn-else" @click="deleteFile">
+          <button class="btn-else" @click="deleteFileById">
             <i class="fas fa-trash-alt"></i> Delete file
           </button>
         </div>
@@ -270,7 +270,8 @@ const {
   getUserFilesTotalCount,
   getUserFilesTotalViews,
   getUserFilesExisting,
-  getUserFilesDeleted
+  getUserFilesDeleted,
+  deleteFile
 } = useFileService();
 
 const {
@@ -300,6 +301,76 @@ const errors = ref({
   phone: '',
   general: '',
 });
+
+
+
+const loadUserFiles = async () => {
+  const response = await getUserFiles();
+  if (response.success) {
+    files.value = response.files;
+    sessionStorage.setItem('userFiles', JSON.stringify(response.files));
+  } else {
+    const storedFiles = sessionStorage.getItem('userFiles');
+    if (storedFiles) {
+      files.value = JSON.parse(storedFiles);
+    }
+  }
+};
+
+const loadUserFilesTotalCount = async () => {
+  const countFilesResponse = await getUserFilesTotalCount();
+  if (countFilesResponse.success) {
+    countFiles.value = countFilesResponse.files_count;
+  } else {
+    console.error('Failed to fetch files count:', countFilesResponse.message);
+  }
+};
+
+const loadUserFilesTotalViews = async () => {
+  const countViewsResponse = await getUserFilesTotalViews();
+  if (countViewsResponse.success) {
+    totalViews.value = countViewsResponse.total_views;
+  } else {
+    console.error('Failed to fetch views count:', countViewsResponse.message);
+  }
+};
+
+const loadUserFilesExisting = async () => {
+  const countExistingFilesResponse = await getUserFilesExisting();
+  if (countExistingFilesResponse.success) {
+    existingFilesCount.value = countExistingFilesResponse.existing_files_count;
+  } else {
+    console.error('Failed to fetch existing files count:', countExistingFilesResponse.message);
+  }
+};
+
+const loadUserFilesDeleted = async () => {
+  const countDeletedFilesResponse = await getUserFilesDeleted();
+  if (countDeletedFilesResponse.success) {
+    deletedFilesCount.value = countDeletedFilesResponse.deleted_files_count;
+  } else {
+    console.error('Failed to fetch deleted files count:', countDeletedFilesResponse.message);
+  }
+};
+
+const loadUserFileLinksDisposable = async () => {
+  const countDisposableFileLinksResponse = await getUserFileLinksDisposable();
+  if (countDisposableFileLinksResponse.success) {
+    totalDisposableLinks.value = countDisposableFileLinksResponse.disposable_links_count;
+  } else {
+    console.error('Failed to fetch disposable file links count:', countDisposableFileLinksResponse.message);
+  }
+};
+
+const loadUserFileLinksUsedDisposable = async () => {
+  const countUsedDisposableFileLinksResponse = await getUserFileLinksUsedDisposable();
+  if (countUsedDisposableFileLinksResponse.success) {
+    usedDisposableLinks.value = countUsedDisposableFileLinksResponse.used_disposable_links_count;
+  } else {
+    console.error('Failed to fetch used disposable file links count:', countUsedDisposableFileLinksResponse.message);
+  }
+};
+
 
 
 const showDropdown = () => {
@@ -491,17 +562,56 @@ const copyFileName = () => {
       });
 };
 
+const deleteFileById = async () => {
+  if (!selectedFile.value) {
+    alert("Select a file to delete!");
+    return;
+  }
+
+  const isConfirmed = confirm("Are you sure you want to delete this file?");
+  if (!isConfirmed) {
+    return;
+  }
+
+  try {
+    const fileId = selectedFile.value;
+    const response = await deleteFile(fileId);
+
+    if (!response.success) {
+      console.error("Failed to delete file:", response.message);
+      alert(response.message || "Failed to delete file.");
+      return;
+    }
+
+    alert("File deleted successfully!");
+    selectedFile.value = null;
+    selectedFileName.value = null;
+
+
+    await loadUserFiles();
+    await loadUserFilesTotalCount();
+    await loadUserFilesTotalViews();
+    await loadUserFilesExisting();
+    await loadUserFilesDeleted();
+    await loadUserFileLinksDisposable();
+    await loadUserFileLinksUsedDisposable();
+  }
+
+  catch (err) {
+    console.error("Error deleting file:", err);
+    alert("An unexpected error occurred.");
+  }
+};
+
+
+
+
 
 
 
 
 const addFile = () => {
   alert("Open modal logic here");
-};
-
-
-const deleteFile = () => {
-  alert("Delete file logic here");
 };
 
 const generateDisposableLink = () => {
@@ -511,6 +621,7 @@ const generateDisposableLink = () => {
 const generateMultipleLink = () => {
   alert("Generate multiple link");
 };
+
 
 
 
@@ -534,67 +645,14 @@ onMounted(async () => {
     document.addEventListener("click", handleClickOutside);
   }
 
-
-  const response = await getUserFiles();
-  if (response.success) {
-    files.value = response.files;
-    sessionStorage.setItem('userFiles', JSON.stringify(response.files));
-  }
-  else {
-    const storedFiles = sessionStorage.getItem('userFiles');
-    if (storedFiles) {
-      files.value = JSON.parse(storedFiles);
-    }
-  }
-
-  const countFilesResponse = await getUserFilesTotalCount();
-  if (countFilesResponse.success) {
-    countFiles.value = countFilesResponse.files_count;
-  } else {
-    console.error('Failed to fetch files count:', countFilesResponse.message);
-  }
-
-  const countViewsResponse = await getUserFilesTotalViews();
-  if (countViewsResponse.success) {
-    totalViews.value = countViewsResponse.total_views;
-  } else {
-    console.error('Failed to fetch views count:', countViewsResponse.message);
-  }
-
-  const countExistingFilesResponse = await getUserFilesExisting();
-  if (countExistingFilesResponse.success) {
-    existingFilesCount.value = countExistingFilesResponse.existing_files_count;
-  } else {
-    console.error('Failed to fetch existing files count:', countExistingFilesResponse.message);
-  }
-
-  const countDeletedFilesResponse = await getUserFilesDeleted();
-  if (countDeletedFilesResponse.success) {
-    deletedFilesCount.value = countDeletedFilesResponse.deleted_files_count;
-  } else {
-    console.error('Failed to fetch deleted files count:', countDeletedFilesResponse.message);
-  }
-
-  const countDisposableFileLinksResponse = await getUserFileLinksDisposable();
-  if (countDisposableFileLinksResponse.success) {
-    totalDisposableLinks.value = countDisposableFileLinksResponse.disposable_links_count;
-  } else {
-    console.error('Failed to fetch disposable file links count:', countDisposableFileLinksResponse.message);
-  }
-
-  const countUsedDisposableFileLinksResponse = await getUserFileLinksUsedDisposable();
-  if (countUsedDisposableFileLinksResponse.success) {
-    usedDisposableLinks.value = countUsedDisposableFileLinksResponse.used_disposable_links_count;
-  } else {
-    console.error('Failed to fetch used disposable file links count:', countUsedDisposableFileLinksResponse.message);
-  }
-
+  await loadUserFiles();
+  await loadUserFilesTotalCount();
+  await loadUserFilesTotalViews();
+  await loadUserFilesExisting();
+  await loadUserFilesDeleted();
+  await loadUserFileLinksDisposable();
+  await loadUserFileLinksUsedDisposable();
 });
-
-
-
-
-
 
 
 </script>

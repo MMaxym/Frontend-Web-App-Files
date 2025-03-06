@@ -165,11 +165,41 @@ export default function useFileService() {
         };
     };
 
+
+    const deleteFile = async (fileId) => {
+        const userId = localStorage.getItem('user_id');
+        if (!userId) {
+            return {
+                success: false,
+                errors: {},
+                message: 'User ID not found!'
+            };
+        }
+
+        const { data, error } = await useFetch(`http://localhost/api/users/${userId}/files/${fileId}`, {
+            method: 'DELETE'
+        });
+
+        if (error.value) {
+            return {
+                success: false,
+                errors: error.value.data?.errors || {},
+                message: error.value.data?.message || 'Failed to delete file'
+            };
+        }
+
+        return {
+            success: true,
+            message: data.value?.message || 'File deleted successfully'
+        };
+    };
+
     return {
         getUserFiles,
         getUserFilesTotalCount,
         getUserFilesTotalViews,
         getUserFilesExisting,
-        getUserFilesDeleted
+        getUserFilesDeleted,
+        deleteFile
     };
 }
