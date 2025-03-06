@@ -194,12 +194,63 @@ export default function useFileService() {
         };
     };
 
+
+    const uploadFile = async (file, comment = '', expiration_date = '') => {
+        const userId = localStorage.getItem('user_id');
+        if (!userId) {
+            return {
+                success: false,
+                errors: {},
+                message: 'User ID not found!'
+            };
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('user_id', userId);
+
+        if (comment) {
+            formData.append('comment', comment);
+        }
+
+        if (expiration_date) {
+            formData.append('expiration_date', expiration_date);
+        }
+
+        const { data, error } = await useFetch('http://localhost/api/files/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (error.value) {
+            return {
+                success: false,
+                errors: error.value.data?.errors || {},
+                message: error.value.data?.message || 'Failed to upload file'
+            };
+        }
+
+        if (data.value?.success) {
+            return {
+                success: true,
+                message: data.value.message || 'File uploaded successfully'
+            };
+        }
+
+        return {
+            success: false,
+            errors: {},
+            message: 'Unexpected error occurred during file upload'
+        };
+    };
+
     return {
         getUserFiles,
         getUserFilesTotalCount,
         getUserFilesTotalViews,
         getUserFilesExisting,
         getUserFilesDeleted,
-        deleteFile
+        deleteFile,
+        uploadFile
     };
 }

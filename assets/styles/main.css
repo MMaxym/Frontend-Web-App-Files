@@ -220,7 +220,7 @@ html, body {
 
 .stat-box:hover {
     transform: scale(1.06);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 0 12px 8px rgb(44, 69, 97, 0.9);
 }
 
 .stat-icon1 {
@@ -534,6 +534,7 @@ tr.selected {
 .m-content-upload {
     background: var(--light1) ;
     padding: 30px;
+    padding-top: 25px;
     border-radius: var(--br-3xs);
     width: 30%;
     text-align: left;
@@ -547,7 +548,6 @@ tr.selected {
     justify-content: space-between;
     align-items: center;
     border-bottom: none !important;
-    padding-bottom: 5px !important;
 }
 
 .modal-header-upload h2 {
@@ -681,6 +681,7 @@ tr.selected {
     color: var(--text-color);
     font-size: 14px;
     margin-top: 15px;
+    margin-bottom: 7px;
 }
 
 .modal-body-upload input {

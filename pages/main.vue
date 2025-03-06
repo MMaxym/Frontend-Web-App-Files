@@ -16,7 +16,7 @@
           <img src="/main-logo.svg" alt="Logo" class="main-logo" />
         </div>
         <div class="toolbar">
-          <button class="btn-add" @click="addFile">
+          <button class="btn-add" @click="openUploadModal">
             <span class="icon-circle"><i class="fas fa-plus"></i></span> Add file
           </button>
           <button class="btn-else" @click="copyFileName">
@@ -38,6 +38,65 @@
         </div>
       </div>
 
+
+      <div id="uploadModal" class="modal">
+        <div class="m-content-upload">
+          <div class="modal-header-upload">
+            <h2>Files Upload</h2>
+            <span class="modalClose" id="closeModalUpload"  @click="closeUploadModal">
+              <i class="fas fa-times"></i>
+            </span>
+          </div>
+          <div class="modal-description-upload">Add your documents here</div>
+          <form id="uploadForm" enctype="multipart/form-data" @submit.prevent="handleSubmit">
+            <div class="modal-body-upload">
+              <div
+                  class="file-dropzone"
+                  id="dropzone"
+                  @dragover.prevent="handleDragOver"
+                  @dragleave="handleDragLeave"
+                  @drop="handleDrop"
+                  :class="{ highlight: isHighlighting }"
+              >
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p class="browse-desc">
+                  Drag your file(s) or
+                  <span class="browse" id="browseText" @click="triggerFileInput">browse</span>
+                </p>
+                <p class="file-validation">* Max 5 MB files are allowed</p>
+                <input type="file" id="fileInput" name="file" ref="fileInput" @change="handleFileChange" style="display: none;" multiple />
+              </div>
+
+              <div id="uploadedFiles" class="uploaded-files">
+                <div v-for="(file, index) in selectedFiles" :key="index" class="uploaded-file">
+                  <i class="far fa-file-alt file-icon"></i>
+                  <span>{{ file.name }}</span>
+                  <button class="remove-file-btn" @click="removeFile(index)">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="optional-section">
+                <h2>Optional: <span class="optional">Add Comments and Deletion Date for File</span></h2>
+                <label for="comment">Comment</label>
+                <textarea id="comment" name="comment" placeholder="Enter your comment"></textarea>
+                <label for="deletionDate">Deletion Date</label>
+                <input type="date" id="deletionDate" name="expiration_date">
+              </div>
+
+              <button type="submit" class="add-file-btn">ADD FILE</button>
+
+            </div>
+          </form>
+        </div>
+      </div>
+
+
+
+
+
+
       <div id="dropdown" class="dropdown-content" ref="dropdownRef">
         <div class="account-information">
           <i class="fas fa-address-card"></i>
@@ -53,7 +112,6 @@
           Edit
         </button>
       </div>
-
 
       <div id="editModal" class="modal">
         <div class="m-content">
@@ -256,6 +314,10 @@ const selectedFileInfo = ref({});
 let dropdown = null;
 let userIcon = null;
 
+const selectedFiles = ref([]);
+const fileInput = ref(null);
+const isHighlighting = ref(false);
+
 
 const {
   logoutUser
@@ -271,7 +333,8 @@ const {
   getUserFilesTotalViews,
   getUserFilesExisting,
   getUserFilesDeleted,
-  deleteFile
+  deleteFile,
+  uploadFile
 } = useFileService();
 
 const {
@@ -396,6 +459,123 @@ onUnmounted(() => {
     document.removeEventListener("click", handleClickOutside);
   }
 });
+
+
+
+
+const openUploadModal = () => {
+  const modal = document.getElementById('uploadModal');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+};
+
+const closeUploadModal = () => {
+  const modal = document.getElementById('uploadModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+};
+
+const triggerFileInput = () => {
+  fileInput.value.click();
+};
+
+const handleDragOver = () => {
+  isHighlighting.value = true;
+};
+
+const handleDragLeave = () => {
+  isHighlighting.value = false;
+};
+
+const handleDrop = (event) => {
+  event.preventDefault();
+  isHighlighting.value = false;
+
+  const files = event.dataTransfer.files;
+  const uploadedFilesCount = selectedFiles.value.length;
+
+  if (files.length === 0) {
+    alert("No file selected. Please choose a file.");
+    return;
+  }
+
+  if (files[0].size > 5242880) {
+    alert("File size exceeds 5 MB. Please choose a smaller file.");
+    return;
+  }
+
+  if (uploadedFilesCount === 0) {
+    selectedFiles.value.push(files[0]);
+  } else {
+    alert("You can only upload one file.");
+  }
+};
+
+const handleFileChange = () => {
+  const file = fileInput.value.files[0];
+  const uploadedFilesCount = selectedFiles.value.length;
+
+  if (!file && uploadedFilesCount === 0) {
+    alert("No file selected. Please choose a file.");
+  } else {
+    if (file.size > 5242880) {
+      alert("File size exceeds 5 MB. Please choose a smaller file.");
+      return;
+    }
+
+    if (uploadedFilesCount === 0) {
+      selectedFiles.value.push(file);
+    } else {
+      alert("You can only upload one file.");
+    }
+  }
+};
+
+const removeFile = (index) => {
+  selectedFiles.value.splice(index, 1);
+};
+
+const handleSubmit = async () => {
+  const file = selectedFiles.value.length > 0 ? selectedFiles.value[0] : null;
+
+  if (!file) {
+    alert("No file selected.");
+    return;
+  }
+
+  const comment = document.getElementById('comment').value;
+  const expirationDate = document.getElementById('deletionDate').value;
+
+  const result = await uploadFile(file, comment, expirationDate);
+
+  if (result.success) {
+    alert(result.message);
+
+    await loadUserFiles();
+    await loadUserFilesTotalCount();
+    await loadUserFilesTotalViews();
+    await loadUserFilesExisting();
+    await loadUserFilesDeleted();
+    await loadUserFileLinksDisposable();
+    await loadUserFileLinksUsedDisposable();
+
+    closeUploadModal();
+    resetForm();
+  }
+  else {
+    alert(result.message || "File upload failed");
+  }
+};
+
+const resetForm = () => {
+  selectedFiles.value = [];
+  document.getElementById('comment').value = '';
+  document.getElementById('deletionDate').value = '';
+};
+
+
 
 const openEditModal = () => {
   const modal = document.getElementById('editModal');
@@ -610,9 +790,6 @@ const deleteFileById = async () => {
 
 
 
-const addFile = () => {
-  alert("Open modal logic here");
-};
 
 const generateDisposableLink = () => {
   alert("Generate disposable link");
@@ -637,6 +814,9 @@ onMounted(async () => {
 
   userIcon = document.getElementById("user-icon");
   dropdown = document.getElementById("dropdown");
+
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('deletionDate').setAttribute('min', today);
 
   if (userIcon && dropdown) {
     userIcon.addEventListener("mouseenter", showDropdown);
