@@ -67,8 +67,46 @@ export default function useFileLinkService(){
         };
     };
 
+    const generateFileLink = async (fileId, type) => {
+        if (!fileId || !type) {
+            return {
+                success: false,
+                errors: {},
+                message: 'File ID and type are required!'
+            };
+        }
+
+        const { data, error } = await useFetch(`http://localhost/api/files/${fileId}/generate-link`, {
+            method: 'POST',
+            body: { type }
+        });
+
+        if (error.value) {
+            return {
+                success: false,
+                errors: error.value.data?.errors || {},
+                message: error.value.data?.message || 'Failed to generate file link'
+            };
+        }
+
+        if (data.value?.success) {
+            return {
+                success: true,
+                link: data.value.link,
+                message: data.value.message || 'File link generated successfully'
+            };
+        }
+
+        return {
+            success: false,
+            errors: {},
+            message: 'Unexpected error occurred while generating file link'
+        };
+    };
+
     return {
         getUserFileLinksDisposable,
-        getUserFileLinksUsedDisposable
+        getUserFileLinksUsedDisposable,
+        generateFileLink
     }
 }

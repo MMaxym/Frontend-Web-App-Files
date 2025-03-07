@@ -38,7 +38,6 @@
         </div>
       </div>
 
-
       <div id="uploadModal" class="modal">
         <div class="m-content-upload">
           <div class="modal-header-upload">
@@ -92,11 +91,6 @@
         </div>
       </div>
 
-
-
-
-
-
       <div id="dropdown" class="dropdown-content" ref="dropdownRef">
         <div class="account-information">
           <i class="fas fa-address-card"></i>
@@ -149,11 +143,6 @@
         </div>
       </div>
 
-
-
-
-
-
       <div class="main-content">
         <div class="sidebar">
           <button class="sidebar-btn" @click="generateDisposableLink">
@@ -165,6 +154,27 @@
           <div class="total-count">
             <span>Total Count Files</span>
             <strong>{{ countFiles }}</strong>
+          </div>
+        </div>
+
+        <div id="linkModal" class="modal">
+          <div class="m-content-link">
+            <div class="modal-header-link">
+              <h2>Generate Link</h2>
+              <span class="modalClose" id="closeModalLink"  @click="closeLinkModal">
+                <i class="fas fa-times"></i>
+              </span>
+            </div>
+            <div class="modal-description-link">Copy the created link</div>
+            <div class="modal-body-link">
+              <div class="link-section">
+                <label for="link">Generate Link</label>
+                <input type="text" id="link" v-model="generatedLink" readonly>
+              </div>
+              <button class="copy-link-btn" @click="copyLink">
+                <i class="fas fa-copy"></i> COPY LINK
+              </button>
+            </div>
           </div>
         </div>
 
@@ -270,503 +280,596 @@
           </div>
         </div>
       </div>
-
-
-
-
     </div>
   </div>
 </template>
 
 <script setup>
+  definePageMeta({
+    middleware: ['auth']
+  });
 
-definePageMeta({
-  middleware: ['auth']
-});
+  import { useRouter } from 'vue-router';
+  import { ref, onMounted, nextTick } from 'vue';
+  import { useCookie } from '#app';
+  import useAuthService from '@/services/authService.js';
+  import useFileService from '@/services/fileService.js';
+  import useFileLinkService from '@/services/fileLinkService.js';
+  import useUserService from '@/services/userService';
 
-import { useRouter } from 'vue-router';
-import { ref, onMounted, nextTick } from 'vue';
-import { useCookie } from '#app';
-import useAuthService from '@/services/authService.js';
-import useFileService from '@/services/fileService.js';
-import useFileLinkService from '@/services/fileLinkService.js';
-import useUserService from '@/services/userService';
+  const router = useRouter();
+  const files = ref([]);
+  const countFiles = ref(0);
+  const totalViews = ref(0);
+  const existingFilesCount = ref(0);
+  const deletedFilesCount = ref(0);
+  const totalDisposableLinks = ref(0);
+  const usedDisposableLinks = ref(0);
 
-const router = useRouter();
-const files = ref([]);
-const countFiles = ref(0);
-const totalViews = ref(0);
-const existingFilesCount = ref(0);
-const deletedFilesCount = ref(0);
-const totalDisposableLinks = ref(0);
-const usedDisposableLinks = ref(0);
+  const selectedFile = ref(null);
+  const selectedFileName = ref("");
+  const tooltipText = ref('');
+  const tooltipStyle = ref({
+    top: '0px',
+    left: '0px',
+  });
 
-const selectedFile = ref(null);
-const selectedFileName = ref("");
-const tooltipText = ref('');
-const tooltipStyle = ref({
-  top: '0px',
-  left: '0px',
-});
+  const selectedFileInfo = ref({});
 
-const selectedFileInfo = ref({});
+  let dropdown = null;
+  let userIcon = null;
 
-let dropdown = null;
-let userIcon = null;
+  const selectedFiles = ref([]);
+  const fileInput = ref(null);
+  const isHighlighting = ref(false);
+  const generatedLink = ref('');
 
-const selectedFiles = ref([]);
-const fileInput = ref(null);
-const isHighlighting = ref(false);
+  const {
+    logoutUser
+  } = useAuthService();
 
+  const {
+    updateUser
+  } = useUserService();
 
-const {
-  logoutUser
-} = useAuthService();
+  const {
+    getUserFiles,
+    getUserFilesTotalCount,
+    getUserFilesTotalViews,
+    getUserFilesExisting,
+    getUserFilesDeleted,
+    deleteFile,
+    uploadFile
+  } = useFileService();
 
-const {
-  updateUser
-} = useUserService();
-
-const {
-  getUserFiles,
-  getUserFilesTotalCount,
-  getUserFilesTotalViews,
-  getUserFilesExisting,
-  getUserFilesDeleted,
-  deleteFile,
-  uploadFile
-} = useFileService();
-
-const {
-  getUserFileLinksDisposable,
-  getUserFileLinksUsedDisposable
-} = useFileLinkService();
-
-
-const user = ref({
-  first_name: localStorage.getItem('user_first_name'),
-  last_name: localStorage.getItem('user_last_name'),
-  email: localStorage.getItem('user_email'),
-  phone: localStorage.getItem('user_phone')
-});
-
-const form = ref({
-  first_name: '',
-  last_name: '',
-  email: '',
-  phone: '',
-});
-
-const errors = ref({
-  first_name: '',
-  last_name: '',
-  email: '',
-  phone: '',
-  general: '',
-});
+  const {
+    getUserFileLinksDisposable,
+    getUserFileLinksUsedDisposable,
+    generateFileLink
+  } = useFileLinkService();
 
 
+  const user = ref({
+    first_name: localStorage.getItem('user_first_name'),
+    last_name: localStorage.getItem('user_last_name'),
+    email: localStorage.getItem('user_email'),
+    phone: localStorage.getItem('user_phone')
+  });
 
-const loadUserFiles = async () => {
-  const response = await getUserFiles();
-  if (response.success) {
-    files.value = response.files;
-    sessionStorage.setItem('userFiles', JSON.stringify(response.files));
-  } else {
-    const storedFiles = sessionStorage.getItem('userFiles');
-    if (storedFiles) {
-      files.value = JSON.parse(storedFiles);
+  const form = ref({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+  });
+
+  const errors = ref({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    general: '',
+  });
+
+
+
+  const loadUserFiles = async () => {
+    const response = await getUserFiles();
+    if (response.success) {
+      files.value = response.files;
+      sessionStorage.setItem('userFiles', JSON.stringify(response.files));
+    } else {
+      const storedFiles = sessionStorage.getItem('userFiles');
+      if (storedFiles) {
+        files.value = JSON.parse(storedFiles);
+      }
     }
-  }
-};
+  };
 
-const loadUserFilesTotalCount = async () => {
-  const countFilesResponse = await getUserFilesTotalCount();
-  if (countFilesResponse.success) {
-    countFiles.value = countFilesResponse.files_count;
-  } else {
-    console.error('Failed to fetch files count:', countFilesResponse.message);
-  }
-};
+  const loadUserFilesTotalCount = async () => {
+    const countFilesResponse = await getUserFilesTotalCount();
+    if (countFilesResponse.success) {
+      countFiles.value = countFilesResponse.files_count;
+    } else {
+      console.error('Failed to fetch files count:', countFilesResponse.message);
+    }
+  };
 
-const loadUserFilesTotalViews = async () => {
-  const countViewsResponse = await getUserFilesTotalViews();
-  if (countViewsResponse.success) {
-    totalViews.value = countViewsResponse.total_views;
-  } else {
-    console.error('Failed to fetch views count:', countViewsResponse.message);
-  }
-};
+  const loadUserFilesTotalViews = async () => {
+    const countViewsResponse = await getUserFilesTotalViews();
+    if (countViewsResponse.success) {
+      totalViews.value = countViewsResponse.total_views;
+    } else {
+      console.error('Failed to fetch views count:', countViewsResponse.message);
+    }
+  };
 
-const loadUserFilesExisting = async () => {
-  const countExistingFilesResponse = await getUserFilesExisting();
-  if (countExistingFilesResponse.success) {
-    existingFilesCount.value = countExistingFilesResponse.existing_files_count;
-  } else {
-    console.error('Failed to fetch existing files count:', countExistingFilesResponse.message);
-  }
-};
+  const loadUserFilesExisting = async () => {
+    const countExistingFilesResponse = await getUserFilesExisting();
+    if (countExistingFilesResponse.success) {
+      existingFilesCount.value = countExistingFilesResponse.existing_files_count;
+    } else {
+      console.error('Failed to fetch existing files count:', countExistingFilesResponse.message);
+    }
+  };
 
-const loadUserFilesDeleted = async () => {
-  const countDeletedFilesResponse = await getUserFilesDeleted();
-  if (countDeletedFilesResponse.success) {
-    deletedFilesCount.value = countDeletedFilesResponse.deleted_files_count;
-  } else {
-    console.error('Failed to fetch deleted files count:', countDeletedFilesResponse.message);
-  }
-};
+  const loadUserFilesDeleted = async () => {
+    const countDeletedFilesResponse = await getUserFilesDeleted();
+    if (countDeletedFilesResponse.success) {
+      deletedFilesCount.value = countDeletedFilesResponse.deleted_files_count;
+    } else {
+      console.error('Failed to fetch deleted files count:', countDeletedFilesResponse.message);
+    }
+  };
 
-const loadUserFileLinksDisposable = async () => {
-  const countDisposableFileLinksResponse = await getUserFileLinksDisposable();
-  if (countDisposableFileLinksResponse.success) {
-    totalDisposableLinks.value = countDisposableFileLinksResponse.disposable_links_count;
-  } else {
-    console.error('Failed to fetch disposable file links count:', countDisposableFileLinksResponse.message);
-  }
-};
+  const loadUserFileLinksDisposable = async () => {
+    const countDisposableFileLinksResponse = await getUserFileLinksDisposable();
+    if (countDisposableFileLinksResponse.success) {
+      totalDisposableLinks.value = countDisposableFileLinksResponse.disposable_links_count;
+    } else {
+      console.error('Failed to fetch disposable file links count:', countDisposableFileLinksResponse.message);
+    }
+  };
 
-const loadUserFileLinksUsedDisposable = async () => {
-  const countUsedDisposableFileLinksResponse = await getUserFileLinksUsedDisposable();
-  if (countUsedDisposableFileLinksResponse.success) {
-    usedDisposableLinks.value = countUsedDisposableFileLinksResponse.used_disposable_links_count;
-  } else {
-    console.error('Failed to fetch used disposable file links count:', countUsedDisposableFileLinksResponse.message);
-  }
-};
-
-
-
-const showDropdown = () => {
-  if (dropdown) dropdown.style.display = "block";
-};
-
-const toggleDropdown = (event) => {
-  event.stopPropagation();
-  if (dropdown) {
-    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
-  }
-};
-
-const hideDropdown = () => {
-  if (dropdown) dropdown.style.display = "none";
-};
-
-onUnmounted(() => {
-  if (userIcon && dropdown) {
-    userIcon.removeEventListener("mouseenter", showDropdown);
-    userIcon.removeEventListener("click", toggleDropdown);
-    dropdown.removeEventListener("mouseleave", hideDropdown);
-    document.removeEventListener("click", handleClickOutside);
-  }
-});
+  const loadUserFileLinksUsedDisposable = async () => {
+    const countUsedDisposableFileLinksResponse = await getUserFileLinksUsedDisposable();
+    if (countUsedDisposableFileLinksResponse.success) {
+      usedDisposableLinks.value = countUsedDisposableFileLinksResponse.used_disposable_links_count;
+    } else {
+      console.error('Failed to fetch used disposable file links count:', countUsedDisposableFileLinksResponse.message);
+    }
+  };
 
 
 
+  const showDropdown = () => {
+    if (dropdown) dropdown.style.display = "block";
+  };
 
-const openUploadModal = () => {
-  const modal = document.getElementById('uploadModal');
-  if (modal) {
-    modal.style.display = 'flex';
-  }
-};
+  const toggleDropdown = (event) => {
+    event.stopPropagation();
+    if (dropdown) {
+      dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+    }
+  };
 
-const closeUploadModal = () => {
-  const modal = document.getElementById('uploadModal');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-};
+  const hideDropdown = () => {
+    if (dropdown) dropdown.style.display = "none";
+  };
 
-const triggerFileInput = () => {
-  fileInput.value.click();
-};
+  onUnmounted(() => {
+    if (userIcon && dropdown) {
+      userIcon.removeEventListener("mouseenter", showDropdown);
+      userIcon.removeEventListener("click", toggleDropdown);
+      dropdown.removeEventListener("mouseleave", hideDropdown);
+      document.removeEventListener("click", handleClickOutside);
+    }
+  });
 
-const handleDragOver = () => {
-  isHighlighting.value = true;
-};
+  const openUploadModal = () => {
+    const modal = document.getElementById('uploadModal');
+    if (modal) {
+      modal.style.display = 'flex';
+    }
+  };
 
-const handleDragLeave = () => {
-  isHighlighting.value = false;
-};
+  const closeUploadModal = () => {
+    const modal = document.getElementById('uploadModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  };
 
-const handleDrop = (event) => {
-  event.preventDefault();
-  isHighlighting.value = false;
+  const triggerFileInput = () => {
+    fileInput.value.click();
+  };
 
-  const files = event.dataTransfer.files;
-  const uploadedFilesCount = selectedFiles.value.length;
+  const handleDragOver = () => {
+    isHighlighting.value = true;
+  };
 
-  if (files.length === 0) {
-    alert("No file selected. Please choose a file.");
-    return;
-  }
+  const handleDragLeave = () => {
+    isHighlighting.value = false;
+  };
 
-  if (files[0].size > 5242880) {
-    alert("File size exceeds 5 MB. Please choose a smaller file.");
-    return;
-  }
+  const handleDrop = (event) => {
+    event.preventDefault();
+    isHighlighting.value = false;
 
-  if (uploadedFilesCount === 0) {
-    selectedFiles.value.push(files[0]);
-  } else {
-    alert("You can only upload one file.");
-  }
-};
+    const files = event.dataTransfer.files;
+    const uploadedFilesCount = selectedFiles.value.length;
 
-const handleFileChange = () => {
-  const file = fileInput.value.files[0];
-  const uploadedFilesCount = selectedFiles.value.length;
+    if (files.length === 0) {
+      alert("No file selected. Please choose a file.");
+      return;
+    }
 
-  if (!file && uploadedFilesCount === 0) {
-    alert("No file selected. Please choose a file.");
-  } else {
-    if (file.size > 5242880) {
+    if (files[0].size > 5242880) {
       alert("File size exceeds 5 MB. Please choose a smaller file.");
       return;
     }
 
     if (uploadedFilesCount === 0) {
-      selectedFiles.value.push(file);
+      selectedFiles.value.push(files[0]);
     } else {
       alert("You can only upload one file.");
     }
-  }
-};
-
-const removeFile = (index) => {
-  selectedFiles.value.splice(index, 1);
-};
-
-const handleSubmit = async () => {
-  const file = selectedFiles.value.length > 0 ? selectedFiles.value[0] : null;
-
-  if (!file) {
-    alert("No file selected.");
-    return;
-  }
-
-  const comment = document.getElementById('comment').value;
-  const expirationDate = document.getElementById('deletionDate').value;
-
-  const result = await uploadFile(file, comment, expirationDate);
-
-  if (result.success) {
-    alert(result.message);
-
-    await loadUserFiles();
-    await loadUserFilesTotalCount();
-    await loadUserFilesTotalViews();
-    await loadUserFilesExisting();
-    await loadUserFilesDeleted();
-    await loadUserFileLinksDisposable();
-    await loadUserFileLinksUsedDisposable();
-
-    closeUploadModal();
-    resetForm();
-  }
-  else {
-    alert(result.message || "File upload failed");
-  }
-};
-
-const resetForm = () => {
-  selectedFiles.value = [];
-  document.getElementById('comment').value = '';
-  document.getElementById('deletionDate').value = '';
-};
-
-
-
-const openEditModal = () => {
-  const modal = document.getElementById('editModal');
-  if (modal) {
-    modal.style.display = 'flex';
-  }
-};
-
-const closeEditModal = () => {
-  const modal = document.getElementById('editModal');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-  errors.value = { first_name: '', last_name: '', email: '', phone: '', general: '' };
-};
-
-const editUser = async (event) => {
-  event.preventDefault();
-
-  errors.value = { first_name: '', last_name: '', email: '', phone: '', general: '' };
-
-  if (!user.value.first_name) errors.value.first_name = 'First name is required.';
-  if (!user.value.last_name) errors.value.last_name = 'Last name is required.';
-  if (!user.value.email) errors.value.email = 'Email is required.';
-  if (!user.value.phone) errors.value.phone = 'Phone is required.';
-
-  if (Object.values(errors.value).some((err) => err)) {
-    return;
-  }
-
-  try {
-    const response = await updateUser(user.value);
-
-    if (response.success) {
-      localStorage.setItem('user_first_name', response.user.first_name);
-      localStorage.setItem('user_last_name', response.user.last_name);
-      localStorage.setItem('user_email', response.user.email);
-      localStorage.setItem('user_phone', response.user.phone);
-
-      alert(response.message);
-      closeEditModal();
-    } else {
-      errors.value = { first_name: '', last_name: '', email: '', phone: '', general: '' };
-      if (response.errors) {
-        for (const [field, message] of Object.entries(response.errors)) {
-          if (errors.value.hasOwnProperty(field)) {
-            errors.value[field] = message[0];
-          } else {
-            errors.value.general = message[0];
-          }
-        }
-      } else {
-        errors.value.general = response.message || 'Update failed';
-      }
-    }
-  } catch (error) {
-    errors.value.general = error.message || 'An unexpected error occurred.';
-  }
-};
-
-const handleLogout = async () => {
-  const isConfirmed = window.confirm('Are you sure you want to log out?');
-
-  if (isConfirmed) {
-    const response = await logoutUser();
-
-    if (response.success) {
-      useCookie('auth_token').value = null;
-
-      router.push('/auth/login');
-      alert(response.message);
-    }
-    else {
-      console.error(response.message);
-    }
-  }
-};
-
-const openFileModal = (file) => {
-  selectedFileInfo.value = {
-    file_name: file.file_name,
-    comment: file.comment,
-    expiration_date: file.expiration_date,
-    views_count: file.views_count,
   };
 
-  const modal = document.getElementById('fileModal');
+  const handleFileChange = () => {
+    const file = fileInput.value.files[0];
+    const uploadedFilesCount = selectedFiles.value.length;
 
-  if (modal) {
-    modal.style.display = 'flex';
-  }
-};
+    if (!file && uploadedFilesCount === 0) {
+      alert("No file selected. Please choose a file.");
+    } else {
+      if (file.size > 5242880) {
+        alert("File size exceeds 5 MB. Please choose a smaller file.");
+        return;
+      }
 
-const closeFileModal = () => {
-  const modal = document.getElementById('fileModal');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-};
+      if (uploadedFilesCount === 0) {
+        selectedFiles.value.push(file);
+      } else {
+        alert("You can only upload one file.");
+      }
+    }
+  };
 
-const showTooltip = (event, text) => {
-  tooltipText.value = text;
-  const tooltip = document.getElementById("tooltip");
-  if (tooltip) {
-    tooltip.style.visibility = 'visible';
-    tooltip.style.opacity = 1;
+  const removeFile = (index) => {
+    selectedFiles.value.splice(index, 1);
+  };
 
-    tooltipStyle.value = {
-      top: `${event.clientY + 15}px`,
-      left: `${event.clientX + 15}px`,
-    };
-  }
+  const handleSubmit = async () => {
+    const file = selectedFiles.value.length > 0 ? selectedFiles.value[0] : null;
 
-  setTimeout(() => {
-    hideTooltip();
-  }, 1000);
-};
-
-const hideTooltip = () => {
-  const tooltip = document.getElementById("tooltip");
-  if (tooltip) {
-    tooltip.style.opacity = 0;
-  }
-};
-
-const highlightRow = (fileId, fileName) => {
-  if (selectedFile.value === fileId) {
-    selectedFile.value = null;
-    selectedFileName.value = null;
-  }
-  else {
-    selectedFile.value = fileId;
-    selectedFileName.value = fileName;
-  }
-}
-
-const handleClickOutside = (event) => {
-  if (!event.target.closest('table')) {
-    selectedFile.value = null
-    selectedFileName.value = null;
-  }
-
-  if (!userIcon.contains(event.target) && !dropdown.contains(event.target)) {
-    hideDropdown();
-  }
-}
-
-
-
-const copyFileName = () => {
-  if (!selectedFileName.value) {
-    alert("Select a file to copy the name!");
-    return;
-  }
-
-  navigator.clipboard.writeText(selectedFileName.value)
-      .then(() => {
-        alert("File name copied to clipboard!");
-        selectedFileName.value = null;
-      })
-      .catch(error => {
-        console.error("Failed to copy text: ", error);
-        alert("Failed to copy file name.");
-      });
-};
-
-const deleteFileById = async () => {
-  if (!selectedFile.value) {
-    alert("Select a file to delete!");
-    return;
-  }
-
-  const isConfirmed = confirm("Are you sure you want to delete this file?");
-  if (!isConfirmed) {
-    return;
-  }
-
-  try {
-    const fileId = selectedFile.value;
-    const response = await deleteFile(fileId);
-
-    if (!response.success) {
-      console.error("Failed to delete file:", response.message);
-      alert(response.message || "Failed to delete file.");
+    if (!file) {
+      alert("No file selected.");
       return;
     }
 
-    alert("File deleted successfully!");
-    selectedFile.value = null;
-    selectedFileName.value = null;
+    const comment = document.getElementById('comment').value;
+    const expirationDate = document.getElementById('deletionDate').value;
 
+    const result = await uploadFile(file, comment, expirationDate);
+
+    if (result.success) {
+      alert(result.message);
+
+      await loadUserFiles();
+      await loadUserFilesTotalCount();
+      await loadUserFilesTotalViews();
+      await loadUserFilesExisting();
+      await loadUserFilesDeleted();
+      await loadUserFileLinksDisposable();
+      await loadUserFileLinksUsedDisposable();
+
+      closeUploadModal();
+      resetForm();
+    }
+    else {
+      alert(result.message || "File upload failed");
+    }
+  };
+
+  const resetForm = () => {
+    selectedFiles.value = [];
+    document.getElementById('comment').value = '';
+    document.getElementById('deletionDate').value = '';
+  };
+
+  const openEditModal = () => {
+    const modal = document.getElementById('editModal');
+    if (modal) {
+      modal.style.display = 'flex';
+    }
+  };
+
+  const closeEditModal = () => {
+    const modal = document.getElementById('editModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+    errors.value = { first_name: '', last_name: '', email: '', phone: '', general: '' };
+  };
+
+  const editUser = async (event) => {
+    event.preventDefault();
+
+    errors.value = { first_name: '', last_name: '', email: '', phone: '', general: '' };
+
+    if (!user.value.first_name) errors.value.first_name = 'First name is required.';
+    if (!user.value.last_name) errors.value.last_name = 'Last name is required.';
+    if (!user.value.email) errors.value.email = 'Email is required.';
+    if (!user.value.phone) errors.value.phone = 'Phone is required.';
+
+    if (Object.values(errors.value).some((err) => err)) {
+      return;
+    }
+
+    try {
+      const response = await updateUser(user.value);
+
+      if (response.success) {
+        localStorage.setItem('user_first_name', response.user.first_name);
+        localStorage.setItem('user_last_name', response.user.last_name);
+        localStorage.setItem('user_email', response.user.email);
+        localStorage.setItem('user_phone', response.user.phone);
+
+        alert(response.message);
+        closeEditModal();
+      } else {
+        errors.value = { first_name: '', last_name: '', email: '', phone: '', general: '' };
+        if (response.errors) {
+          for (const [field, message] of Object.entries(response.errors)) {
+            if (errors.value.hasOwnProperty(field)) {
+              errors.value[field] = message[0];
+            } else {
+              errors.value.general = message[0];
+            }
+          }
+        } else {
+          errors.value.general = response.message || 'Update failed';
+        }
+      }
+    } catch (error) {
+      errors.value.general = error.message || 'An unexpected error occurred.';
+    }
+  };
+
+  const handleLogout = async () => {
+    const isConfirmed = window.confirm('Are you sure you want to log out?');
+
+    if (isConfirmed) {
+      const response = await logoutUser();
+
+      if (response.success) {
+        useCookie('auth_token').value = null;
+
+        router.push('/auth/login');
+        alert(response.message);
+      }
+      else {
+        console.error(response.message);
+      }
+    }
+  };
+
+  const openFileModal = (file) => {
+    selectedFileInfo.value = {
+      file_name: file.file_name,
+      comment: file.comment,
+      expiration_date: file.expiration_date,
+      views_count: file.views_count,
+    };
+
+    const modal = document.getElementById('fileModal');
+
+    if (modal) {
+      modal.style.display = 'flex';
+    }
+  };
+
+  const closeFileModal = () => {
+    const modal = document.getElementById('fileModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  };
+
+  const showTooltip = (event, text) => {
+    tooltipText.value = text;
+    const tooltip = document.getElementById("tooltip");
+    if (tooltip) {
+      tooltip.style.visibility = 'visible';
+      tooltip.style.opacity = 1;
+
+      tooltipStyle.value = {
+        top: `${event.clientY + 15}px`,
+        left: `${event.clientX + 15}px`,
+      };
+    }
+
+    setTimeout(() => {
+      hideTooltip();
+    }, 1000);
+  };
+
+  const openLinkModal = () => {
+    const modal = document.getElementById('linkModal');
+    if (modal) {
+      modal.style.display = 'flex';
+    }
+  };
+
+  const closeLinkModal = async () => {
+    const modal = document.getElementById('linkModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+    await loadUserFiles();
+    await loadUserFilesTotalCount();
+    await loadUserFilesTotalViews();
+    await loadUserFilesExisting();
+    await loadUserFilesDeleted();
+    await loadUserFileLinksDisposable();
+    await loadUserFileLinksUsedDisposable();
+  };
+
+  const hideTooltip = () => {
+    const tooltip = document.getElementById("tooltip");
+    if (tooltip) {
+      tooltip.style.opacity = 0;
+    }
+  };
+
+  const highlightRow = (fileId, fileName) => {
+    if (selectedFile.value === fileId) {
+      selectedFile.value = null;
+      selectedFileName.value = null;
+    }
+    else {
+      selectedFile.value = fileId;
+      selectedFileName.value = fileName;
+    }
+  }
+
+  const handleClickOutside = (event) => {
+    if (!event.target.closest('table')) {
+      selectedFile.value = null
+      selectedFileName.value = null;
+    }
+
+    if (!userIcon.contains(event.target) && !dropdown.contains(event.target)) {
+      hideDropdown();
+    }
+  }
+
+  const copyFileName = () => {
+    if (!selectedFileName.value) {
+      alert("Select a file to copy the name!");
+      return;
+    }
+
+    navigator.clipboard.writeText(selectedFileName.value)
+        .then(() => {
+          alert("File name copied to clipboard!");
+          selectedFileName.value = null;
+        })
+        .catch(error => {
+          console.error("Failed to copy text: ", error);
+          alert("Failed to copy file name.");
+        });
+  };
+
+  const deleteFileById = async () => {
+    if (!selectedFile.value) {
+      alert("Select a file to delete!");
+      return;
+    }
+
+    const isConfirmed = confirm("Are you sure you want to delete this file?");
+    if (!isConfirmed) {
+      return;
+    }
+
+    try {
+      const fileId = selectedFile.value;
+      const response = await deleteFile(fileId);
+
+      if (!response.success) {
+        console.error("Failed to delete file:", response.message);
+        alert(response.message || "Failed to delete file.");
+        return;
+      }
+
+      alert("File deleted successfully!");
+      selectedFile.value = null;
+      selectedFileName.value = null;
+
+
+      await loadUserFiles();
+      await loadUserFilesTotalCount();
+      await loadUserFilesTotalViews();
+      await loadUserFilesExisting();
+      await loadUserFilesDeleted();
+      await loadUserFileLinksDisposable();
+      await loadUserFileLinksUsedDisposable();
+    }
+
+    catch (err) {
+      console.error("Error deleting file:", err);
+      alert("An unexpected error occurred.");
+    }
+  };
+
+  const generateDisposableLink = async () => {
+    if (!selectedFile.value) {
+      alert('Select a file to generate link!');
+      return;
+    }
+
+    openLinkModal();
+
+    const response = await generateFileLink(selectedFile.value, 'temporary');
+
+    if (response.success) {
+      generatedLink.value = response.link;
+    }
+    else {
+      alert(response.message);
+    }
+  };
+
+  const generateMultipleLink = async () => {
+    if (!selectedFile.value) {
+      alert('Select a file to generate link!');
+      return;
+    }
+    openLinkModal();
+
+    const response = await generateFileLink(selectedFile.value, 'public');
+
+    if (response.success) {
+      generatedLink.value = response.link;
+    }
+    else {
+      alert(response.message);
+    }
+  };
+
+  const copyLink = async () => {
+    if (!generatedLink.value) {
+      alert("No link to copy!");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(generatedLink.value);
+      alert("Link copied to clipboard!");
+    }
+    catch (err) {
+      alert("Failed to copy link. Please try again.");
+    }
+  };
+
+  onMounted(async () => {
+
+    await nextTick();
+
+    document.addEventListener('click', handleClickOutside)
+
+    userIcon = document.getElementById("user-icon");
+    dropdown = document.getElementById("dropdown");
+
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('deletionDate').setAttribute('min', today);
+
+    if (userIcon && dropdown) {
+      userIcon.addEventListener("mouseenter", showDropdown);
+      userIcon.addEventListener("click", toggleDropdown);
+      dropdown.addEventListener("mouseleave", hideDropdown);
+      document.addEventListener("click", handleClickOutside);
+    }
 
     await loadUserFiles();
     await loadUserFilesTotalCount();
@@ -775,65 +878,7 @@ const deleteFileById = async () => {
     await loadUserFilesDeleted();
     await loadUserFileLinksDisposable();
     await loadUserFileLinksUsedDisposable();
-  }
-
-  catch (err) {
-    console.error("Error deleting file:", err);
-    alert("An unexpected error occurred.");
-  }
-};
-
-
-
-
-
-
-
-
-
-const generateDisposableLink = () => {
-  alert("Generate disposable link");
-};
-
-const generateMultipleLink = () => {
-  alert("Generate multiple link");
-};
-
-
-
-
-
-
-
-
-onMounted(async () => {
-
-  await nextTick();
-
-  document.addEventListener('click', handleClickOutside)
-
-  userIcon = document.getElementById("user-icon");
-  dropdown = document.getElementById("dropdown");
-
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('deletionDate').setAttribute('min', today);
-
-  if (userIcon && dropdown) {
-    userIcon.addEventListener("mouseenter", showDropdown);
-    userIcon.addEventListener("click", toggleDropdown);
-    dropdown.addEventListener("mouseleave", hideDropdown);
-    document.addEventListener("click", handleClickOutside);
-  }
-
-  await loadUserFiles();
-  await loadUserFilesTotalCount();
-  await loadUserFilesTotalViews();
-  await loadUserFilesExisting();
-  await loadUserFilesDeleted();
-  await loadUserFileLinksDisposable();
-  await loadUserFileLinksUsedDisposable();
-});
-
+  });
 
 </script>
 
