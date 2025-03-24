@@ -33,12 +33,12 @@
 
         <div class="divider">or</div>
 
-        <div class="btn-google">
-          <a href="#" class="google-btn-link">
-            <img src="/public/Google.svg" alt="Google Icon" class="google-icon" />
-            Google
-          </a>
-        </div>
+<!--        <div class="btn-google">-->
+<!--          <a href="#" class="google-btn-link">-->
+<!--            <img src="/public/Google.svg" alt="Google Icon" class="google-icon" />-->
+<!--            Google-->
+<!--          </a>-->
+<!--        </div>-->
 
         <button type="submit" class="login-btn">LOG IN</button>
 

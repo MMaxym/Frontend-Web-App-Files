@@ -1,6 +1,10 @@
 import { useFetch } from '#app';
 
 export default function useFileService() {
+
+    const config = useRuntimeConfig();
+    const apiBase = config.public.apiBase;
+
     const getUserFiles = async () => {
         const userId = localStorage.getItem('user_id');
         if (!userId) {
@@ -10,7 +14,7 @@ export default function useFileService() {
                 message: 'User ID not found!'
             };
         }
-        const { data, error } = await useFetch(`http://localhost/api/users/${userId}/files`, {
+        const { data, error } = await useFetch(`${apiBase}/users/${userId}/files`, {
             method: 'GET'
         });
         if (error.value) {
@@ -43,7 +47,7 @@ export default function useFileService() {
                 message: 'User ID not found!'
             };
         }
-        const { data, error } = await useFetch(`http://localhost/api/users/${userId}/files/total-count`, {
+        const { data, error } = await useFetch(`${apiBase}/users/${userId}/files/total-count`, {
             method: 'GET'
         });
         if (error.value) {
@@ -76,7 +80,7 @@ export default function useFileService() {
                 message: 'User ID not found!'
             };
         }
-        const { data, error } = await useFetch(`http://localhost/api/users/${userId}/files/total-views`, {
+        const { data, error } = await useFetch(`${apiBase}/users/${userId}/files/total-views`, {
             method: 'GET'
         });
         if (error.value) {
@@ -109,7 +113,7 @@ export default function useFileService() {
                 message: 'User ID not found!'
             };
         }
-        const { data, error } = await useFetch(`http://localhost/api/users/${userId}/files/existing-count`, {
+        const { data, error } = await useFetch(`${apiBase}/users/${userId}/files/existing-count`, {
             method: 'GET'
         });
         if (error.value) {
@@ -142,7 +146,7 @@ export default function useFileService() {
                 message: 'User ID not found!'
             };
         }
-        const { data, error } = await useFetch(`http://localhost/api/users/${userId}/files/deleted-count`, {
+        const { data, error } = await useFetch(`${apiBase}/users/${userId}/files/deleted-count`, {
             method: 'GET'
         });
         if (error.value) {
@@ -176,7 +180,7 @@ export default function useFileService() {
             };
         }
 
-        const { data, error } = await useFetch(`http://localhost/api/users/${userId}/files/${fileId}`, {
+        const { data, error } = await useFetch(`${apiBase}/users/${userId}/files/${fileId}`, {
             method: 'DELETE'
         });
 
@@ -217,7 +221,7 @@ export default function useFileService() {
             formData.append('expiration_date', expiration_date);
         }
 
-        const { data, error } = await useFetch('http://localhost/api/files/upload', {
+        const { data, error } = await useFetch(`${apiBase}/files/upload`, {
             method: 'POST',
             body: formData
         });

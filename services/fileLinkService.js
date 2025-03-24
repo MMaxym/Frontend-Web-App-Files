@@ -2,6 +2,9 @@ import { useFetch } from '#app';
 
 export default function useFileLinkService(){
 
+    const config = useRuntimeConfig();
+    const apiBase = config.public.apiBase;
+
     const getUserFileLinksDisposable = async () => {
         const userId = localStorage.getItem('user_id');
         if (!userId) {
@@ -11,7 +14,7 @@ export default function useFileLinkService(){
                 message: 'User ID not found!'
             };
         }
-        const { data, error } = await useFetch(`http://localhost/api/users/${userId}/file-links/disposable-links-count`, {
+        const { data, error } = await useFetch(`${apiBase}/users/${userId}/file-links/disposable-links-count`, {
             method: 'GET'
         });
         if (error.value) {
@@ -44,7 +47,7 @@ export default function useFileLinkService(){
                 message: 'User ID not found!'
             };
         }
-        const { data, error } = await useFetch(`http://localhost/api/users/${userId}/file-links/used-disposable-links-count`, {
+        const { data, error } = await useFetch(`${apiBase}/users/${userId}/file-links/used-disposable-links-count`, {
             method: 'GET'
         });
         if (error.value) {
@@ -76,7 +79,7 @@ export default function useFileLinkService(){
             };
         }
 
-        const { data, error } = await useFetch(`http://localhost/api/files/${fileId}/generate-link`, {
+        const { data, error } = await useFetch(`${apiBase}/files/${fileId}/generate-link`, {
             method: 'POST',
             body: { type }
         });

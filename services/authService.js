@@ -2,8 +2,11 @@ import { useFetch } from '#app';
 
 export default function useAuth() {
 
+    const config = useRuntimeConfig();
+    const apiBase = config.public.apiBase;
+
     const loginUser = async (email, password) => {
-        const { data, error } = await useFetch('http://localhost/api/auth/login', {
+        const { data, error } = await useFetch(`${apiBase}/auth/login`, {
             method: 'POST',
             body: { email, password },
             headers: { 'Content-Type': 'application/json' }
@@ -34,7 +37,7 @@ export default function useAuth() {
 
 
     const registerUser = async (first_name, last_name, email, password, password_confirmation, phone) => {
-        const { data, error } = await useFetch('http://localhost/api/auth/register', {
+        const { data, error } = await useFetch(`${apiBase}/auth/register`, {
             method: 'POST',
             body: {
                 first_name,
@@ -69,7 +72,7 @@ export default function useAuth() {
     };
 
     const sendPasswordResetLink = async (email) => {
-        const { data, error } = await useFetch('http://localhost/api/auth/password/email', {
+        const { data, error } = await useFetch(`${apiBase}/auth/password/email`, {
             method: 'POST',
             body: { email },
             headers: { 'Content-Type': 'application/json' }
@@ -97,7 +100,7 @@ export default function useAuth() {
     };
 
     const resetPassword = async (email, password, password_confirmation, token) => {
-        const { data, error } = await useFetch('http://localhost/api/auth/password/reset', {
+        const { data, error } = await useFetch(`${apiBase}/auth/password/reset`, {
             method: 'POST',
             body: {
                 email,
@@ -138,7 +141,7 @@ export default function useAuth() {
             };
         }
 
-        const { data, error } = await useFetch('http://localhost/api/auth/logout', {
+        const { data, error } = await useFetch(`${apiBase}/auth/logout`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`

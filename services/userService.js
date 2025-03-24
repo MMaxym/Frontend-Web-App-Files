@@ -2,6 +2,9 @@ import { useFetch } from '#app';
 
 export default function useUserService() {
 
+    const config = useRuntimeConfig();
+    const apiBase = config.public.apiBase;
+
     const updateUser = async (userData) => {
         const userId = localStorage.getItem('user_id');
         const token = localStorage.getItem('auth_token');
@@ -19,7 +22,7 @@ export default function useUserService() {
             };
         }
 
-        const { data, error } = await useFetch(`http://localhost/api/users/${userId}`, {
+        const { data, error } = await useFetch(`${apiBase}/users/${userId}`, {
             method: 'PUT',
             body: userData,
             headers: {
